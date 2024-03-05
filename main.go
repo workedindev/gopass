@@ -10,9 +10,9 @@ import (
 
 const (
 	MinLength      = 16
-	LowercaseRegex = "a-z"
-	UppercaseRegex = "A-Z"
-	NumericRegex   = "0-9"
+	LowercaseRange = "a-z"
+	UppercaseRange = "A-Z"
+	NumericRange   = "0-9"
 )
 
 var alphaEnabled, numericEnabled, symbolsEnabled bool
@@ -70,24 +70,30 @@ func buildPassword(length int, alphabet []byte, regexTests *map[string]*regexp.R
 func generatePassword(length int, deny *string) string {
 	alphabet, symbols := buildAlphabet(deny)
 
+	regexTests := make(map[string]*regexp.Regexp)
+
 	fullValidRegex := ""
 	if alphaEnabled {
-		fullValidRegex += LowercaseRegex + UppercaseRegex
+		fullValidRegex += LowercaseRange + UppercaseRange
+
+		regexTests["lower"] = regexp.MustCompile(
+			fmt.Sprintf(".*[%s].*", LowercaseRange))
+
+		regexTests["upper"] = regexp.MustCompile(
+			fmt.Sprintf(".*[%s].*", UppercaseRange))
 	}
 	if numericEnabled {
-		fullValidRegex += NumericRegex
+		fullValidRegex += NumericRange
+
+		regexTests["numeric"] = regexp.MustCompile(
+			fmt.Sprintf(".*[%s].*", NumericRange))
 	}
 	if symbolsEnabled {
 		fullValidRegex += symbols
+
+		regexTests["symbols"] = regexp.MustCompile(
+			fmt.Sprintf(".*[%s].*", symbols))
 	}
-
-	regexTests := make(map[string]*regexp.Regexp)
-	regexTests["full"] = regexp.MustCompile(fmt.Sprintf("[%s]{%d}", fullValidRegex, length))
-	regexTests["lower"] = regexp.MustCompile(`.*[a-z].*`)
-	regexTests["upper"] = regexp.MustCompile(`.*[A-Z].*`)
-	regexTests["numeric"] = regexp.MustCompile(`.*[0-9].*`)
-	regexTests["symbols"] = regexp.MustCompile(fmt.Sprintf(".*[%s].*", symbols))
-
 	return buildPassword(length, alphabet, &regexTests)
 }
 
@@ -99,5 +105,5 @@ func main() {
 	deny := flag.String("d", "", "list of explicitly denied characters")
 	flag.Parse()
 
-	fmt.Printf("%s\n", generatePassword(*length, deny))
+	fmt.Printf("%s", generatePassword(*length, deny))
 }
